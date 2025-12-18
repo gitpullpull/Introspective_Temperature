@@ -62,93 +62,37 @@ model = FastLanguageModel.get_peft_model(
 # =================================================================
 # 3. データセット
 # =================================================================
-dataset_id = "gitpullpull/Introspective_Temperature"
-data_files = "clean_orpo.jsonl"
+dataset_file = "clean_orpo.jsonl" 
+dataset = load_dataset("json", data_files=dataset_file, split="train")
 
-print(f"Loading dataset: {dataset_id} ({data_files})...")
-
-# -------------------------------------------------
-# 3.1 Dataset Load
-# -------------------------------------------------
-# HF Hub 上の jsonl は { "meta": ..., "data": ... } 構造
-raw_dataset = load_dataset(
-    dataset_id,
-    data_files={"train": data_files}
-)["train"]
-
-# -------------------------------------------------
-# 3.2 Flatten (data フィールドを展開)
-# -------------------------------------------------
-def flatten_row(example):
-    data = example.get("data", {})
-    return {
-        "user_prompt": data.get("user_prompt"),
-        "thought_chosen": data.get("thought_chosen", ""),
-        "chosen_response": data.get("chosen_response"),
-        "thought_rejected": data.get("thought_rejected", ""),
-        "rejected_response": data.get("rejected_response"),
-    }
-
-dataset = raw_dataset.map(
-    flatten_row,
-    remove_columns=raw_dataset.column_names,
-)
-
-# -------------------------------------------------
-# 3.3 Filter invalid / degenerate rows
-# -------------------------------------------------
 def filter_bad_rows(example):
     try:
-        if example is None:
-            return False
-        if not isinstance(example.get("user_prompt"), str):
-            return False
-        if not isinstance(example.get("chosen_response"), str):
-            return False
-        if not isinstance(example.get("rejected_response"), str):
-            return False
-        if example["chosen_response"] == example["rejected_response"]:
-            return False
+        row = example.get("data", example)
+        if row is None: return False
+        if not isinstance(row.get("user_prompt"), str): return False
+        if row.get("chosen_response") == row.get("rejected_response"): return False
         return True
-    except Exception:
-        return False
+    except: return False
 
 dataset = dataset.filter(filter_bad_rows)
 
-print(f"Dataset size after filtering: {len(dataset)}")
-
-# -------------------------------------------------
-# 3.4 ORPO 用フォーマット
-# -------------------------------------------------
 def format_orpo_data(example):
+    row = example.get("data", example)
     formatted_prompt = tokenizer.apply_chat_template(
-        [{"role": "user", "content": example["user_prompt"]}],
+        [{"role": "user", "content": row["user_prompt"]}],
         tokenize=False,
-        add_generation_prompt=True,  # ORPO / DPO 系では必須
+        add_generation_prompt=True
     )
-
-    formatted_chosen = (
-        f"<think>\n{example.get('thought_chosen', '')}\n</think>\n"
-        f"{example['chosen_response']}"
-    )
-
-    formatted_rejected = (
-        f"<think>\n{example.get('thought_rejected', '')}\n</think>\n"
-        f"{example['rejected_response']}"
-    )
-
+    # ORPOもDPOと同じ形式(prompt, chosen, rejected)を使用
+    formatted_chosen = f"<think>\n{row['thought_chosen']}\n</think>\n{row['chosen_response']}"
+    formatted_rejected = f"<think>\n{row['thought_rejected']}\n</think>\n{row['rejected_response']}"
     return {
         "prompt": formatted_prompt,
         "chosen": formatted_chosen,
         "rejected": formatted_rejected,
     }
 
-formatted_dataset = dataset.map(
-    format_orpo_data,
-    remove_columns=dataset.column_names,
-)
-
-print("Dataset formatting for ORPO completed.")
+formatted_dataset = dataset.map(format_orpo_data)
 
 
 # =================================================================
