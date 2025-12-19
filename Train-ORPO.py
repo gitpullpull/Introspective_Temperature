@@ -54,7 +54,7 @@ model = FastLanguageModel.get_peft_model(
                       "gate_proj", "up_proj", "down_proj",],
     lora_alpha = 32,
     bias = "none",
-    lora_dropout = 0.05,
+    lora_dropout = 0,
     use_gradient_checkpointing = "unsloth",
     random_state = 3407,
 )
@@ -103,12 +103,12 @@ orpo_config = ORPOConfig(
     output_dir = output_dir,
     remove_unused_columns = False,
     
-    per_device_train_batch_size = 1,
+    per_device_train_batch_size = 2,
     gradient_accumulation_steps = 8,
 
     # --- Lion設定 ---
     optim = "paged_lion_8bit",
-    learning_rate = 1e-6, 
+    learning_rate = 5e-6, 
     weight_decay = 0.01,
     adam_beta1 = 0.9,
     adam_beta2 = 0.99,
@@ -117,7 +117,7 @@ orpo_config = ORPOConfig(
     beta = 0.1,
     # --------------------
     
-    num_train_epochs = 1,
+    num_train_epochs = 3,
     max_steps = -1,
     warmup_ratio = 0.1,
     fp16 = not is_bfloat16_supported(),
