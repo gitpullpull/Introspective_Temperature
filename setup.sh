@@ -3,6 +3,7 @@
 # 1. ライブラリのインストール
 echo "--- Installing python libraries ---"
 pip install pandas matplotlib huggingface_hub
+pip install https://github.com/Dao-AILab/flash-attention/releases/tag/v2.8.2/flash_attn-2.8.3+cu12torch2.8cxx11abiTRUE-cp311-cp311-linux_x86_64.whl
 
 apt-get install git-lfs -y
 git lfs install
