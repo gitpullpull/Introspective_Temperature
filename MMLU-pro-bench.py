@@ -19,7 +19,7 @@ from huggingface_hub import HfApi, login
 # 1. 設定とフラグ
 # ==============================================================================
 MAX_SEQ_LENGTH = 16384
-MAX_NEW_TOKENS = 2048
+MAX_NEW_TOKENS = 4096
 LOAD_IN_4BIT = False
 
 hf_token = os.getenv("HF_TOKEN")
