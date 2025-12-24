@@ -62,7 +62,7 @@ model = FastLanguageModel.get_peft_model(
 # =================================================================
 # 3. データセット
 # =================================================================
-dataset_file = "clean_orpo_sanitized.jsonl" 
+dataset_file = "clean_orpo5k_sanitized.jsonl" 
 dataset = load_dataset("json", data_files=dataset_file, split="train")
 
 def filter_bad_rows(example):
@@ -113,7 +113,7 @@ orpo_config = ORPOConfig(
 
     # --- Lion設定 ---
     optim = "paged_lion_8bit",
-    learning_rate = 5e-6, 
+    learning_rate = 4e-6, 
     weight_decay = 0.01,
     adam_beta1 = 0.9,
     adam_beta2 = 0.99,
@@ -122,7 +122,7 @@ orpo_config = ORPOConfig(
     beta = 0.1,
     # --------------------
     
-    num_train_epochs = 3,
+    num_train_epochs = 2,
     max_steps = -1,
     warmup_ratio = 0.1,
     fp16 = not is_bfloat16_supported(),
