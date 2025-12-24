@@ -342,12 +342,12 @@ def eval_mmlu_pro(model, tokenizer, test_data, val_data, args):
     # 温度マップの設定
     if args.use_Introspective_Temperature:
         TEMP_MAP = {
-            "<TEMP_LOW>": 0.2,
-            "<TEMPERATURE_LOW>": 0.2,
+            "<TEMP_LOW>": 0.4,
+            "<TEMPERATURE_LOW>": 0.4,
             "<TEMP_MID>": 0.6,
             "<TEMPERATURE_MID>": 0.6,
-            "<TEMP_HIGH>": 0.9,
-            "<TEMPERATURE_HIGH>": 0.9,
+            "<TEMP_HIGH>": 1.0,
+            "<TEMPERATURE_HIGH>": 1.0,
         }
     else:
         TEMP_MAP = {}

@@ -382,8 +382,8 @@ def eval_gpqa(model, tokenizer, dataset, args):
     # 温度マップの設定
     if args.use_Introspective_Temperature:
         TEMP_MAP = {
-            "<TEMP_LOW>": 0.4,
-            "<TEMPERATURE_LOW>": 0.4,
+            "<TEMP_LOW>": 0.3,
+            "<TEMPERATURE_LOW>": 0.3,
             "<TEMP_MID>": 0.6,
             "<TEMPERATURE_MID>": 0.6,
             "<TEMP_HIGH>": 1.0,
