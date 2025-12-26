@@ -428,7 +428,7 @@ def main():
     parser.add_argument("--save_dir", "-s", type=str, default="./benchmark_results")
     parser.add_argument("--global_record_file", "-grf", type=str, default="eval_record.csv")
     parser.add_argument("--model", "-m", type=str, default="unsloth/Qwen3-8B")
-    parser.add_argument("--lora_path", "-lp", type=str, nargs='?', const="./Introspective_Temperature_test/run_20251219_040313", default=None)
+    parser.add_argument("--lora_path", "-lp", type=str, nargs='?', const="./Introspective_Temperature_test/run_20251224_170022", default=None)
     parser.add_argument("--num_samples", "-ns", type=int, default=-1, help="Number of random samples to evaluate.")
     parser.add_argument("--use_custom_prompt", "-up", action='store_true', help="Use custom prompt with temperature control tags.")
     parser.add_argument("--use_Introspective_Temperature", "-ui", action='store_true', help="Use Introspective_Temperature control tags.")
