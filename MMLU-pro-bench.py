@@ -244,16 +244,12 @@ def format_cot_example(example, including_answer=True):
     return prompt
 
 def create_prompt_text(curr, val_df, k, use_custom_prompt=False):
-    """プロンプト作成 (System Prompt分離版)"""
-    messages = []
-
-    # 1. System Promptの追加 (カスタムプロンプト有効時のみ)
+    """プロンプト作成"""
     if use_custom_prompt:
-        system_content = "You allow dynamic control of generation temperature. Always use <TEMP_LOW>, <TEMP_MID>, or <TEMP_HIGH> tags to indicate your thought process and response style.\n\n"
-        messages.append({"role": "system", "content": system_content})
-
-    # 2. User Promptの作成 (問題文やFew-shotはこちらに残す)
-    user_content = "The following are multiple choice questions (with answers) about {}.\n\n".format(curr["category"].replace("_", " "))
+        prompt = "You can control the output style using <TEMP_LOW>, <TEMP_MID>, or <TEMP_HIGH> tags.\n\n"
+        prompt += "The following are multiple choice questions (with answers) about {}.\n\n".format(curr["category"].replace("_", " "))
+    else:
+        prompt = "The following are multiple choice questions (with answers) about {}.\n\n".format(curr["category"].replace("_", " "))
     
     # Few-shot examples
     if k > 0:
@@ -261,14 +257,14 @@ def create_prompt_text(curr, val_df, k, use_custom_prompt=False):
         relevant_examples = [x for x in val_df if x["category"] == subject]
         shots = relevant_examples[:k]
         for example in shots:
-            user_content += format_cot_example(example, including_answer=True)
+            prompt += format_cot_example(example, including_answer=True)
     
     # Target Question
-    user_content += format_cot_example(curr, including_answer=False)
+    prompt += format_cot_example(curr, including_answer=False)
     
-    # Userメッセージを追加
-    messages.append({"role": "user", "content": user_content})
-    
+    messages = [
+        {"role": "user", "content": prompt}
+    ]
     return messages
 
 def custom_collate_fn(batch):
