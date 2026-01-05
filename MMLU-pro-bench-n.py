@@ -342,12 +342,12 @@ def eval_mmlu_pro(model, tokenizer, test_data, val_data, args):
     # 温度マップの設定
     if args.use_Introspective_Temperature:
         TEMP_MAP = {
-            "<TEMP_LOW>": 0.2,
-            "<TEMPERATURE_LOW>": 0.2,
+            "<TEMP_LOW>": 0.3,
+            "<TEMPERATURE_LOW>": 0.3,
             "<TEMP_MID>": 0.6,
             "<TEMPERATURE_MID>": 0.6,
-            "<TEMP_HIGH>": 0.9,
-            "<TEMPERATURE_HIGH>": 0.9,
+            "<TEMP_HIGH>": 0.8,
+            "<TEMPERATURE_HIGH>": 0.8,
         }
     else:
         TEMP_MAP = {}
@@ -386,6 +386,7 @@ def eval_mmlu_pro(model, tokenizer, test_data, val_data, args):
             check_window=20
         )
 
+        # 生成された部分のみを抽出
         generated_ids = outputs[:, inputs.input_ids.shape[1]:]
         responses = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
@@ -394,6 +395,10 @@ def eval_mmlu_pro(model, tokenizer, test_data, val_data, args):
             category = item["category"]
             question_id = item["question"][:50]
             gt = item["answer"]
+            
+            # トークン数カウント (パディングを除く)
+            gen_seq = generated_ids[i]
+            token_count = (gen_seq != tokenizer.pad_token_id).sum().item()
             
             pred = extract_answer(response)
             
@@ -410,6 +415,7 @@ def eval_mmlu_pro(model, tokenizer, test_data, val_data, args):
                 "category": category,
                 "question_head": question_id,
                 "model_output": response,
+                "total_tokens": token_count, # 結果にトークン数を追加
                 "predicted": pred,
                 "ground_truth": gt,
                 "is_correct": is_correct
@@ -426,7 +432,7 @@ def main():
     parser.add_argument("--batch_size", "-bs", type=int, default=3)
     parser.add_argument("--selected_subjects", "-sub", type=str, default="all")
     parser.add_argument("--save_dir", "-s", type=str, default="./benchmark_results")
-    # global_record_file は廃止（無視）
+    
     parser.add_argument("--model", "-m", type=str, default="unsloth/Qwen3-8B")
     parser.add_argument("--lora_path", "-lp", type=str, nargs='?', const="./Introspective_Temperature_test/run_20251219_040313", default=None)
     
@@ -437,8 +443,8 @@ def main():
     parser.add_argument("--use_custom_prompt", "-up", action='store_true', help="Use custom prompt with temperature control tags.")
     parser.add_argument("--use_Introspective_Temperature", "-ui", action='store_true', help="Use Introspective_Temperature control tags.")
 
-    # チャンクサイズ（デフォルト1000）
-    parser.add_argument("--chunk_size", type=int, default=100, help="Save and upload every N samples.")
+    # チャンクサイズ
+    parser.add_argument("--chunk_size", type=int, default=500, help="Save and upload every N samples.")
 
     args = parser.parse_args()
     
