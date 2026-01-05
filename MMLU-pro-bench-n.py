@@ -434,7 +434,7 @@ def main():
     parser.add_argument("--save_dir", "-s", type=str, default="./benchmark_results")
     
     parser.add_argument("--model", "-m", type=str, default="unsloth/Qwen3-8B")
-    parser.add_argument("--lora_path", "-lp", type=str, nargs='?', const="./Introspective_Temperature_test/run_20251219_040313", default=None)
+    parser.add_argument("--lora_path", "-lp", type=str, nargs='?', const="./Introspective_Temperature_test/run_20251224_170022", default=None)
     
     # start/end 引数
     parser.add_argument("--start_index", "-start", type=int, default=0, help="Start index for sequential evaluation (0-based).")
