@@ -386,6 +386,7 @@ def eval_mmlu_pro(model, tokenizer, test_data, val_data, args):
             check_window=20
         )
 
+        # 生成された部分のみを抽出
         generated_ids = outputs[:, inputs.input_ids.shape[1]:]
         responses = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
@@ -394,6 +395,12 @@ def eval_mmlu_pro(model, tokenizer, test_data, val_data, args):
             category = item["category"]
             question_id = item["question"][:50]
             gt = item["answer"]
+            
+            # --- 修正: トークン数カウント (パディングを除く) ---
+            # batch処理で終了後に埋められたpad_tokenを除外してカウント
+            gen_seq = generated_ids[i]
+            token_count = (gen_seq != tokenizer.pad_token_id).sum().item()
+            # -----------------------------------------------
             
             pred = extract_answer(response)
             
@@ -410,6 +417,7 @@ def eval_mmlu_pro(model, tokenizer, test_data, val_data, args):
                 "category": category,
                 "question_head": question_id,
                 "model_output": response,
+                "total_tokens": token_count, # 結果にトークン数を追加
                 "predicted": pred,
                 "ground_truth": gt,
                 "is_correct": is_correct
@@ -524,8 +532,6 @@ def main():
             writer = csv.writer(file)
             writer.writerow([model_name, "CoT", args.selected_subjects, shot_str, f"{sample_str}_{timestamp}", accuracy])
         print(f"Record appended to {csv_path}")
-
-
 
 if __name__ == "__main__":
     main()
