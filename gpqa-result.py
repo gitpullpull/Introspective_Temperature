@@ -26,7 +26,7 @@ def parse_args():
 def analyze_and_save(experiment_id, merged_details, output_dir):
     """
     GPQA用の分析を行い、CSVとして保存する。
-    問題ごとの正答率（Pass Rate）を集計する。
+    問題ごとの正答率（Pass Rate）および完走率（Completion Rate）を集計する。
     """
     if not merged_details:
         print(f"[{experiment_id}] データが空のため分析をスキップします。")
@@ -37,18 +37,20 @@ def analyze_and_save(experiment_id, merged_details, output_dir):
     if "is_correct" not in df.columns: return
     if "total_tokens" not in df.columns: df["total_tokens"] = np.nan
     if "question" not in df.columns: return
+    if "is_null" not in df.columns: df["is_null"] = False
 
     # --- 問題ごとの集計 (Per-Question Analysis) ---
     # pass_rate: 5 seed中、何回正解したかの割合 (平均正答率)
     # tokens: Seed 46のトークン数 (他はNaNなのでmaxを取ればSeed 46の値になる)
-    # ground_truth: 代表値を採用
-    # ※ 質問文のシャッフル等で正解記号が変わる場合があるため、Questionでグルーピング
+    # null_count: 5 seed中、何回回答不能(null)だったか
+    # null_prob: その問題がnullになる確率
     
-    # シャッフル対策: 質問文だけでまとめる（ground_truthは集計から外すか、代表値をとる）
     analysis = df.groupby(["question"]).agg(
         pass_rate=("is_correct", "mean"),
         tokens=("total_tokens", "max"),
         correct_count=("is_correct", "sum"),
+        null_count=("is_null", "sum"),
+        null_prob=("is_null", "mean"),
         ground_truth=("ground_truth", "first")
     ).reset_index()
 
@@ -56,21 +58,37 @@ def analyze_and_save(experiment_id, merged_details, output_dir):
     analysis = analysis.sort_values(by=["pass_rate", "tokens"], ascending=[False, True])
 
     # --- 全体サマリー行 ---
-    # 全体の平均正答率 (Micro Average)
+    # 全体の平均正答率
     total_acc = df["is_correct"].mean()
     # 全体の平均トークン数 (Seed 46が存在する行のみの平均)
     total_tokens = df["total_tokens"].mean()
     
-    print(f"  -> 集計結果: Overall Acc = {total_acc:.2%}, Avg Tokens (Seed 46) = {total_tokens:.1f}")
+    # 完走率の計算
+    total_samples = len(df)
+    total_nulls = df["is_null"].sum()
+    completion_rate = 1.0 - (total_nulls / total_samples) if total_samples > 0 else 0.0
+    avg_nulls_per_question = total_nulls / len(analysis) if len(analysis) > 0 else 0.0
+    
+    print(f"  -> 集計結果: Overall Acc = {total_acc:.2%}, Completion Rate = {completion_rate:.2%}, Avg Tokens (Seed 46) = {total_tokens:.1f}")
 
     summary_row = pd.DataFrame([{
         "question": "== TOTAL SUMMARY ==",
         "ground_truth": "",
         "pass_rate": total_acc,
         "tokens": total_tokens,
-        "correct_count": df["is_correct"].sum()
+        "correct_count": df["is_correct"].sum(),
+        "null_count": total_nulls,         # 全体のNull総数
+        "null_prob": avg_nulls_per_question # 1問あたりの平均Null数として出力（または確率でも可）
     }])
     
+    # サマリ行の null_prob カラムには「完走率」を入れてわかりやすくするか、
+    # あるいは「全体のNull率」を入れるのが一般的です。今回は「全体のNull率」を入れます。
+    summary_row["null_prob"] = total_nulls / total_samples if total_samples > 0 else 0.0
+    
+    # 完走率カラムを追加（オプション）
+    analysis["completion_rate"] = 1.0 - analysis["null_prob"]
+    summary_row["completion_rate"] = completion_rate
+
     final_df = pd.concat([analysis, summary_row], ignore_index=True)
 
     # CSV保存
@@ -93,6 +111,10 @@ def process_file_data(data):
     for item in details:
         is_correct = item.get("correct", False)
         
+        # Null判定: predicted が None の場合
+        predicted = item.get("predicted")
+        is_null = (predicted is None)
+        
         # トークン数の処理: Seed 46のみ取得し、それ以外はNaN
         token_count = np.nan
         if seed == 46:
@@ -106,6 +128,7 @@ def process_file_data(data):
             "question": item.get("question", "").strip(),
             "ground_truth": item.get("ground_truth", ""),
             "is_correct": is_correct,
+            "is_null": is_null,
             "seed": seed,
             "total_tokens": token_count
         }
