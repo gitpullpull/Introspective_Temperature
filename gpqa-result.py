@@ -12,7 +12,7 @@ REPO_ID = "gitpullpull/Introspective_Temperature_benchmark"
 REPO_TYPE = "dataset"
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="GPQA Benchmark Analyzer (No Merge)")
+    parser = argparse.ArgumentParser(description="GPQA Benchmark Analyzer")
     
     # デフォルトを 'gpqa-diamond-results/base-it-up' に変更
     parser.add_argument("--path", type=str, default="gpqa-diamond-results/base-it-up", 
@@ -41,10 +41,15 @@ def analyze_and_save(experiment_id, merged_details, output_dir):
     # --- 問題ごとの集計 (Per-Question Analysis) ---
     # pass_rate: 5 seed中、何回正解したかの割合 (平均正答率)
     # tokens: Seed 46のトークン数 (他はNaNなのでmaxを取ればSeed 46の値になる)
-    analysis = df.groupby(["question", "ground_truth"]).agg(
+    # ground_truth: 代表値を採用
+    # ※ 質問文のシャッフル等で正解記号が変わる場合があるため、Questionでグルーピング
+    
+    # シャッフル対策: 質問文だけでまとめる（ground_truthは集計から外すか、代表値をとる）
+    analysis = df.groupby(["question"]).agg(
         pass_rate=("is_correct", "mean"),
         tokens=("total_tokens", "max"),
-        correct_count=("is_correct", "sum")
+        correct_count=("is_correct", "sum"),
+        ground_truth=("ground_truth", "first")
     ).reset_index()
 
     # Pass Rateが高い順 -> トークン数が少ない順 にソート
@@ -139,9 +144,6 @@ def main():
         path = file_info.path
         if path.endswith(".json"):
             # target_path からの相対パスを取得
-            # 例: target=".../base-it-up", file=".../base-it-up/seed_42.json" -> rel="seed_42.json" -> sub_dir=""
-            # 例: target=".../results", file=".../results/base/seed_42.json" -> rel="base/seed_42.json" -> sub_dir="base"
-            
             rel_path = path.replace(f"{target_path}/", "")
             sub_dir = os.path.dirname(rel_path)
             
